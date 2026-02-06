@@ -9,12 +9,12 @@ sequenceDiagram
   participant Indexer as BlockchainIndexer
   participant Chain as Blockchain
 
-  Note over Buyer,Chain: Buyer selects "Pay with Blockchain"
+  Note over Buyer,Chain: Buyer selects Pay with Blockchain
   
-  Buyer->>Api: POST /orders/{id}/checkout_crypto
+  Buyer->>Api: POST /orders/ID/checkout_crypto
   Api->>Api: Generate payment address
   Api->>Api: Create crypto_payment_request
-  Api-->>Buyer: {payment_address, amount, qr_code, expiry}
+  Api-->>Buyer: payment_address, amount, qr_code, expiry
   
   Buyer->>Buyer: Display address, QR code, amount
   Note over Buyer: Buyer opens wallet, sends crypto
@@ -22,14 +22,14 @@ sequenceDiagram
   Buyer->>Chain: Send USDC to payment_address
   Chain-->>Indexer: Transaction detected
   
-  Indexer->>Api: POST /webhooks/blockchain {tx_hash, amount, to}
+  Indexer->>Api: POST /webhooks/blockchain tx_hash
   Api->>Api: Verify tx on-chain
   Api->>Api: Mark order PAID, store tx_hash
   Api-->>Indexer: 200 OK
   
-  Buyer->>Api: GET /orders/{id} (polling)
-  Api-->>Buyer: Order {status: PAID}
-  Buyer->>Buyer: Show "Payment confirmed"
+  Buyer->>Api: GET /orders/ID polling
+  Api-->>Buyer: Order status PAID
+  Buyer->>Buyer: Show Payment confirmed
 ```
 
 ---
@@ -46,31 +46,31 @@ sequenceDiagram
 
   Note over Buyer,Chain: Buyer pays via blockchain with escrow
 
-  Buyer->>Api: POST /orders/{id}/checkout_crypto {escrow: true}
-  Api->>Contract: Deploy escrow(orderId, seller_address)
+  Buyer->>Api: POST /orders/ID/checkout_crypto escrow true
+  Api->>Contract: Deploy escrow orderId seller_address
   Contract-->>Api: Escrow address
-  Api-->>Buyer: {escrow_address, amount, qr_code}
+  Api-->>Buyer: escrow_address amount qr_code
 
   Buyer->>Buyer: Send USDC to escrow_address
   Buyer->>Chain: Transfer USDC
   Chain->>Contract: Funds locked in escrow
 
-  Api->>Api: Detect escrow funded, mark order PAID_ESCROWED
+  Api->>Api: Detect escrow funded mark order PAID_ESCROWED
 
   Note over Seller: Seller ships product
-  Seller->>Api: Update order: SHIPPED
+  Seller->>Api: Update order SHIPPED
 
   Note over Buyer: Buyer receives product
-  Buyer->>Api: POST /orders/{id}/confirm_delivery
-  Api->>Contract: confirmDelivery(orderId)
+  Buyer->>Api: POST /orders/ID/confirm_delivery
+  Api->>Contract: confirmDelivery orderId
   Contract->>Chain: Release funds to seller
   Chain-->>Seller: Funds transferred
 
   Alt Buyer disputes
-    Buyer->>Api: POST /orders/{id}/dispute
-    Api->>Api: Order status: DISPUTED
+    Buyer->>Api: POST /orders/ID/dispute
+    Api->>Api: Order status DISPUTED
     Note over Api: Admin reviews dispute
-    Api->>Contract: refund(orderId) or releaseFunds(orderId)
+    Api->>Contract: refund orderId or releaseFunds orderId
     Contract->>Chain: Refund buyer or pay seller
   End
 ```
@@ -128,8 +128,8 @@ flowchart TD
   J --> K[Admin reviews evidence]
   
   K --> L{Decision?}
-  L -->|Refund buyer| M[Admin: POST /admin/disputes/id/resolve refund=true]
-  L -->|Release to seller| N[Admin: POST /admin/disputes/id/resolve refund=false]
+  L -->|Refund buyer| M["Admin: POST /admin/disputes/id/resolve refund=true"]
+  L -->|Release to seller| N["Admin: POST /admin/disputes/id/resolve refund=false"]
   
   M --> O[Refund buyer, order: REFUNDED]
   N --> P[Seller keeps payment, order: RESOLVED]
@@ -167,11 +167,11 @@ flowchart TB
     Chain[Ethereum / Polygon]
   end
   
-  FlutterApp -->|GET /products/:id| API
-  FlutterApp -->|POST /orders/{id}/checkout| API
-  FlutterApp -->|POST /orders/{id}/checkout_crypto| API
-  FlutterApp -->|POST /seller/verification| API
-  FlutterApp -->|POST /orders/{id}/dispute| API
+  FlutterApp -->|"GET /products/:id"| API
+  FlutterApp -->|"POST /orders/ID/checkout"| API
+  FlutterApp -->|"POST /orders/ID/checkout_crypto"| API
+  FlutterApp -->|"POST /seller/verification"| API
+  FlutterApp -->|"POST /orders/ID/dispute"| API
   
   API --> DB
   API -->|Presign URLs| S3
